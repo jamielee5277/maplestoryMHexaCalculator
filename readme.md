@@ -54,6 +54,5 @@ Pass your current stats as arguments. The script calculates results based on a t
 
 ```bash
 # Example: Starting with Main Level 4, Normal1 Level 4, and Normal2 Level 3
-```
 python3 stats.py --main 4 --n1 4 --n2 3
 ```
