@@ -11,12 +11,12 @@
     :root {
       --bg-dark: #0a0e17;
       --bg-card: #111827;
-      --accent-main: #f59e0b;
-      --accent-main-glow: #f59e0b55;
-      --accent-n1: #06b6d4;
-      --accent-n1-glow: #06b6d455;
-      --accent-n2: #a855f7;
-      --accent-n2-glow: #a855f755;
+      --accent-main: #a855f7;
+      --accent-main-glow: #a855f755;
+      --accent-n1: #3b82f6;
+      --accent-n1-glow: #3b82f655;
+      --accent-n2: #3b82f6;
+      --accent-n2-glow: #3b82f655;
       --text-primary: #f8fafc;
       --text-secondary: #94a3b8;
       --text-muted: #475569;
@@ -47,9 +47,9 @@
       right: 0;
       bottom: 0;
       background: 
-        radial-gradient(ellipse at 20% 20%, rgba(245, 158, 11, 0.08) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 80%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
-        radial-gradient(ellipse at 50% 50%, rgba(6, 182, 212, 0.05) 0%, transparent 60%);
+        radial-gradient(ellipse at 20% 20%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(59, 130, 246, 0.05) 0%, transparent 60%);
       pointer-events: none;
       z-index: 0;
     }
@@ -73,7 +73,7 @@
       font-weight: 900;
       letter-spacing: 3px;
       text-transform: uppercase;
-      background: linear-gradient(135deg, var(--accent-main) 0%, var(--accent-n1) 50%, var(--accent-n2) 100%);
+      background: linear-gradient(135deg, var(--accent-main) 0%, #c084fc 50%, var(--accent-n1) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -134,17 +134,17 @@
     }
 
     .stat-badge.main {
-      background: rgba(245, 158, 11, 0.2);
+      background: rgba(168, 85, 247, 0.2);
       color: var(--accent-main);
     }
 
     .stat-badge.n1 {
-      background: rgba(6, 182, 212, 0.2);
+      background: rgba(59, 130, 246, 0.2);
       color: var(--accent-n1);
     }
 
     .stat-badge.n2 {
-      background: rgba(168, 85, 247, 0.2);
+      background: rgba(59, 130, 246, 0.2);
       color: var(--accent-n2);
     }
 
@@ -217,17 +217,17 @@
     }
 
     .bar-segment.filled.main {
-      background: linear-gradient(180deg, var(--accent-main) 0%, #d97706 100%);
+      background: linear-gradient(180deg, var(--accent-main) 0%, #9333ea 100%);
       box-shadow: 0 0 12px var(--accent-main-glow);
     }
 
     .bar-segment.filled.n1 {
-      background: linear-gradient(180deg, var(--accent-n1) 0%, #0891b2 100%);
+      background: linear-gradient(180deg, var(--accent-n1) 0%, #2563eb 100%);
       box-shadow: 0 0 12px var(--accent-n1-glow);
     }
 
     .bar-segment.filled.n2 {
-      background: linear-gradient(180deg, var(--accent-n2) 0%, #9333ea 100%);
+      background: linear-gradient(180deg, var(--accent-n2) 0%, #2563eb 100%);
       box-shadow: 0 0 12px var(--accent-n2-glow);
     }
 
@@ -248,17 +248,17 @@
     .level-input:focus {
       outline: none;
       border-color: var(--accent-main);
-      background: rgba(245, 158, 11, 0.1);
+      background: rgba(168, 85, 247, 0.1);
     }
 
     .level-input.n1:focus {
       border-color: var(--accent-n1);
-      background: rgba(6, 182, 212, 0.1);
+      background: rgba(59, 130, 246, 0.1);
     }
 
     .level-input.n2:focus {
       border-color: var(--accent-n2);
-      background: rgba(168, 85, 247, 0.1);
+      background: rgba(59, 130, 246, 0.1);
     }
 
     .results-container {
@@ -362,6 +362,177 @@
     .calculating {
       animation: pulse 1s ease-in-out infinite;
     }
+
+    .probability-table-container {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 30px;
+      margin-top: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 
+        0 4px 6px -1px rgba(0, 0, 0, 0.3),
+        0 2px 4px -2px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .probability-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    .probability-table th,
+    .probability-table td {
+      padding: 12px 8px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .probability-table th {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .probability-table th.level-header {
+      color: var(--text-secondary);
+    }
+
+    .probability-table th.main-header {
+      color: var(--accent-main);
+    }
+
+    .probability-table th.n1-header {
+      color: var(--accent-n1);
+    }
+
+    .probability-table th.n2-header {
+      color: var(--accent-n2);
+    }
+
+    .probability-table td {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .probability-table td.level-cell {
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+
+    .probability-table td.reached {
+      color: var(--text-muted);
+      opacity: 0.5;
+    }
+
+    .probability-table td.current {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+    }
+
+    .probability-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .probability-table tr:hover td:not(.level-cell) {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .simulate-container {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-simulate {
+      flex: 1;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: linear-gradient(135deg, var(--accent-main) 0%, #c084fc 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
+    }
+
+    .btn-simulate:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(168, 85, 247, 0.4);
+    }
+
+    .btn-simulate:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .btn-simulate:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-reset {
+      padding: 14px 24px;
+      border: 2px solid rgba(239, 68, 68, 0.5);
+      border-radius: 10px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+
+    .btn-reset:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: #ef4444;
+    }
+
+    .last-roll {
+      text-align: center;
+      margin-top: 15px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      min-height: 24px;
+    }
+
+    .last-roll .highlight {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+    }
+
+    .last-roll .highlight.main {
+      color: var(--accent-main);
+    }
+
+    .last-roll .highlight.n1,
+    .last-roll .highlight.n2 {
+      color: var(--accent-n1);
+    }
+
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
+    .bar-segment.just-filled {
+      animation: pop 0.3s ease-out;
+    }
   </style>
 </head>
 <body>
@@ -386,10 +557,10 @@
         </div>
       </div>
 
-      <!-- Normal Stat 1 -->
+      <!-- Additional Stat 1 -->
       <div class="stat-row">
         <div class="stat-label">
-          <span class="stat-name n1">Normal Stat 1</span>
+          <span class="stat-name n1">Additional Stat 1</span>
           <span class="stat-badge n1">SECONDARY</span>
         </div>
         <div class="stat-controls">
@@ -400,10 +571,10 @@
         </div>
       </div>
 
-      <!-- Normal Stat 2 -->
+      <!-- Additional Stat 2 -->
       <div class="stat-row">
         <div class="stat-label">
-          <span class="stat-name n2">Normal Stat 2</span>
+          <span class="stat-name n2">Additional Stat 2</span>
           <span class="stat-badge n2">SECONDARY</span>
         </div>
         <div class="stat-controls">
@@ -413,6 +584,12 @@
           <input type="number" class="level-input n2" id="n2-input" min="0" max="10" value="0" onchange="setStatFromInput('n2')">
         </div>
       </div>
+
+      <div class="simulate-container">
+        <button class="btn-simulate" id="btn-simulate" onclick="simulateLevelUp()">Roll Level Up</button>
+        <button class="btn-reset" onclick="resetStats()">Reset</button>
+      </div>
+      <div class="last-roll" id="last-roll"></div>
     </div>
 
     <div class="results-container">
@@ -423,7 +600,7 @@
           <span class="result-value" id="prob-main-10">0.00%</span>
         </div>
         <div class="result-row">
-          <span class="result-label">At least one normal stat reaches 10</span>
+          <span class="result-label">At least one additional stat reaches 10</span>
           <span class="result-value" id="prob-normal-10">0.00%</span>
         </div>
         <div class="result-row">
@@ -435,6 +612,22 @@
         <div class="remaining-label">REMAINING LEVEL-UPS</div>
         <div class="remaining-value" id="remaining">20</div>
       </div>
+    </div>
+
+    <div class="probability-table-container">
+      <h2 class="results-title">Level Probability Breakdown</h2>
+      <table class="probability-table">
+        <thead>
+          <tr>
+            <th class="level-header">Level</th>
+            <th class="main-header">Main Stat</th>
+            <th class="n1-header">Additional 1</th>
+            <th class="n2-header">Additional 2</th>
+          </tr>
+        </thead>
+        <tbody id="probability-table-body">
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -526,6 +719,88 @@
       return { pMain10, pNormal10, pMain8OrMore };
     }
 
+    // Compute probability of reaching at least level X for each stat
+    function computeLevelProbabilities(startMain, startN1, startN2) {
+      const remainingLevels = TOTAL_LEVELS - (startMain + startN1 + startN2);
+      if (remainingLevels < 0) {
+        return null;
+      }
+
+      memoCache = {};
+
+      // dp returns array of probabilities: [P(main>=1), P(main>=2), ..., P(main>=10), P(n1>=1), ..., P(n1>=10), P(n2>=1), ..., P(n2>=10)]
+      function dp(m, n1, n2) {
+        const key = `lvl_${m},${n1},${n2}`;
+        if (memoCache[key]) return memoCache[key];
+
+        const used = m + n1 + n2;
+
+        if (used === TOTAL_LEVELS) {
+          // Return probabilities for reaching each level
+          const result = [];
+          for (let lvl = 1; lvl <= 10; lvl++) {
+            result.push(m >= lvl ? 1.0 : 0.0);  // main
+          }
+          for (let lvl = 1; lvl <= 10; lvl++) {
+            result.push(n1 >= lvl ? 1.0 : 0.0);  // n1
+          }
+          for (let lvl = 1; lvl <= 10; lvl++) {
+            result.push(n2 >= lvl ? 1.0 : 0.0);  // n2
+          }
+          return result;
+        }
+
+        const pm = m < 10 ? mainChances[m] : 0.0;
+        const remaining = 1 - pm;
+
+        let totals = new Array(30).fill(0);
+
+        // Main stat increases
+        if (m < 10) {
+          const sub = dp(m + 1, n1, n2);
+          for (let i = 0; i < 30; i++) {
+            totals[i] += pm * sub[i];
+          }
+        }
+
+        // Normal stats
+        const normals = [];
+        if (n1 < 10) normals.push(1);
+        if (n2 < 10) normals.push(2);
+
+        if (normals.length > 0) {
+          const pEach = remaining / normals.length;
+          if (n1 < 10) {
+            const sub = dp(m, n1 + 1, n2);
+            for (let i = 0; i < 30; i++) {
+              totals[i] += pEach * sub[i];
+            }
+          }
+          if (n2 < 10) {
+            const sub = dp(m, n1, n2 + 1);
+            for (let i = 0; i < 30; i++) {
+              totals[i] += pEach * sub[i];
+            }
+          }
+        } else {
+          const sub = dp(m, n1, n2);
+          for (let i = 0; i < 30; i++) {
+            totals[i] += remaining * sub[i];
+          }
+        }
+
+        memoCache[key] = totals;
+        return totals;
+      }
+
+      const probs = dp(startMain, startN1, startN2);
+      return {
+        main: probs.slice(0, 10),
+        n1: probs.slice(10, 20),
+        n2: probs.slice(20, 30)
+      };
+    }
+
     function renderBar(statKey) {
       const bar = document.getElementById(`${statKey}-bar`);
       const level = stats[statKey];
@@ -583,6 +858,74 @@
 
       const remaining = TOTAL_LEVELS - (stats.main + stats.n1 + stats.n2);
       document.getElementById('remaining').textContent = remaining;
+
+      // Update the probability table
+      updateProbabilityTable();
+    }
+
+    function updateProbabilityTable() {
+      const levelProbs = computeLevelProbabilities(stats.main, stats.n1, stats.n2);
+      const tbody = document.getElementById('probability-table-body');
+      tbody.innerHTML = '';
+
+      if (!levelProbs) return;
+
+      for (let lvl = 1; lvl <= 10; lvl++) {
+        const row = document.createElement('tr');
+        
+        // Level column
+        const levelCell = document.createElement('td');
+        levelCell.className = 'level-cell';
+        levelCell.textContent = lvl;
+        row.appendChild(levelCell);
+
+        // Main stat column
+        const mainCell = document.createElement('td');
+        const mainProb = levelProbs.main[lvl - 1] * 100;
+        if (stats.main >= lvl) {
+          mainCell.textContent = '✓';
+          mainCell.className = 'reached';
+        } else if (stats.main === lvl - 1) {
+          mainCell.textContent = mainProb.toFixed(2) + '%';
+          mainCell.className = `current ${getValueClass(mainProb)}`;
+        } else {
+          mainCell.textContent = mainProb.toFixed(2) + '%';
+          mainCell.className = getValueClass(mainProb);
+        }
+        row.appendChild(mainCell);
+
+        // N1 stat column
+        const n1Cell = document.createElement('td');
+        const n1Prob = levelProbs.n1[lvl - 1] * 100;
+        if (stats.n1 >= lvl) {
+          n1Cell.textContent = '✓';
+          n1Cell.className = 'reached';
+        } else if (stats.n1 === lvl - 1) {
+          n1Cell.textContent = n1Prob.toFixed(2) + '%';
+          n1Cell.className = `current ${getValueClass(n1Prob)}`;
+        } else {
+          n1Cell.textContent = n1Prob.toFixed(2) + '%';
+          n1Cell.className = getValueClass(n1Prob);
+        }
+        row.appendChild(n1Cell);
+
+        // N2 stat column
+        const n2Cell = document.createElement('td');
+        const n2Prob = levelProbs.n2[lvl - 1] * 100;
+        if (stats.n2 >= lvl) {
+          n2Cell.textContent = '✓';
+          n2Cell.className = 'reached';
+        } else if (stats.n2 === lvl - 1) {
+          n2Cell.textContent = n2Prob.toFixed(2) + '%';
+          n2Cell.className = `current ${getValueClass(n2Prob)}`;
+        } else {
+          n2Cell.textContent = n2Prob.toFixed(2) + '%';
+          n2Cell.className = getValueClass(n2Prob);
+        }
+        row.appendChild(n2Cell);
+
+        tbody.appendChild(row);
+      }
     }
 
     function adjustStat(statKey, delta) {
@@ -616,11 +959,94 @@
       updateResults();
     }
 
+    function simulateLevelUp() {
+      const total = stats.main + stats.n1 + stats.n2;
+      if (total >= TOTAL_LEVELS) return;
+
+      const roll = Math.random();
+      const mainChance = stats.main < MAX_LEVEL ? mainChances[stats.main] : 0;
+      
+      let selectedStat;
+      let statName;
+
+      if (roll < mainChance && stats.main < MAX_LEVEL) {
+        // Main stat gets the level
+        selectedStat = 'main';
+        statName = 'Main Stat';
+      } else {
+        // Distribute to additional stats
+        const availableNormals = [];
+        if (stats.n1 < MAX_LEVEL) availableNormals.push('n1');
+        if (stats.n2 < MAX_LEVEL) availableNormals.push('n2');
+
+        if (availableNormals.length > 0) {
+          // Randomly pick one of the available additional stats
+          const idx = Math.floor(Math.random() * availableNormals.length);
+          selectedStat = availableNormals[idx];
+          statName = selectedStat === 'n1' ? 'Additional Stat 1' : 'Additional Stat 2';
+        } else if (stats.main < MAX_LEVEL) {
+          // Both additional stats maxed, give to main
+          selectedStat = 'main';
+          statName = 'Main Stat';
+        } else {
+          // All maxed (shouldn't happen)
+          return;
+        }
+      }
+
+      // Apply the level up
+      stats[selectedStat]++;
+      
+      // Render with animation
+      renderBarWithAnimation(selectedStat);
+      updateButtons();
+      updateResults();
+      updateSimulateButton();
+
+      // Show what was rolled
+      const rollPercent = (roll * 100).toFixed(1);
+      const chancePercent = (mainChance * 100).toFixed(0);
+      document.getElementById('last-roll').innerHTML = 
+        `Rolled ${rollPercent}% (Main chance: ${chancePercent}%) → <span class="highlight ${selectedStat}">${statName}</span> +1`;
+    }
+
+    function renderBarWithAnimation(statKey) {
+      const bar = document.getElementById(`${statKey}-bar`);
+      const level = stats[statKey];
+      bar.innerHTML = '';
+      
+      for (let i = 0; i < MAX_LEVEL; i++) {
+        const segment = document.createElement('div');
+        const isFilled = i < level;
+        const isJustFilled = i === level - 1;
+        segment.className = `bar-segment ${isFilled ? `filled ${statKey}` : 'empty'} ${isJustFilled ? 'just-filled' : ''}`;
+        bar.appendChild(segment);
+      }
+    }
+
+    function updateSimulateButton() {
+      const total = stats.main + stats.n1 + stats.n2;
+      const btn = document.getElementById('btn-simulate');
+      btn.disabled = total >= TOTAL_LEVELS;
+    }
+
+    function resetStats() {
+      stats.main = 0;
+      stats.n1 = 0;
+      stats.n2 = 0;
+      ['main', 'n1', 'n2'].forEach(renderBar);
+      updateButtons();
+      updateResults();
+      updateSimulateButton();
+      document.getElementById('last-roll').innerHTML = '';
+    }
+
     // Initialize
     function init() {
       ['main', 'n1', 'n2'].forEach(renderBar);
       updateButtons();
       updateResults();
+      updateSimulateButton();
     }
 
     init();
