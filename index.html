@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stat Level-Up Probability Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0a0e17;
+      --bg-card: #111827;
+      --accent-main: #f59e0b;
+      --accent-main-glow: #f59e0b55;
+      --accent-n1: #06b6d4;
+      --accent-n1-glow: #06b6d455;
+      --accent-n2: #a855f7;
+      --accent-n2-glow: #a855f755;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #475569;
+      --bar-empty: #1e293b;
+      --success: #22c55e;
+      --warning: #eab308;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      background: var(--bg-dark);
+      min-height: 100vh;
+      color: var(--text-primary);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(ellipse at 20% 20%, rgba(245, 158, 11, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(6, 182, 212, 0.05) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(1.8rem, 5vw, 2.5rem);
+      font-weight: 900;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, var(--accent-main) 0%, var(--accent-n1) 50%, var(--accent-n2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      letter-spacing: 2px;
+    }
+
+    .stat-bars-container {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 
+        0 4px 6px -1px rgba(0, 0, 0, 0.3),
+        0 2px 4px -2px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .stat-row {
+      margin-bottom: 25px;
+    }
+
+    .stat-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .stat-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .stat-name {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .stat-name.main { color: var(--accent-main); }
+    .stat-name.n1 { color: var(--accent-n1); }
+    .stat-name.n2 { color: var(--accent-n2); }
+
+    .stat-badge {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .stat-badge.main {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--accent-main);
+    }
+
+    .stat-badge.n1 {
+      background: rgba(6, 182, 212, 0.2);
+      color: var(--accent-n1);
+    }
+
+    .stat-badge.n2 {
+      background: rgba(168, 85, 247, 0.2);
+      color: var(--accent-n2);
+    }
+
+    .stat-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-minus {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    .btn-minus:hover:not(:disabled) {
+      background: rgba(239, 68, 68, 0.4);
+      transform: scale(1.05);
+    }
+
+    .btn-plus {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
+
+    .btn-plus:hover:not(:disabled) {
+      background: rgba(34, 197, 94, 0.4);
+      transform: scale(1.05);
+    }
+
+    .btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .bar-container {
+      flex: 1;
+      height: 36px;
+      background: var(--bar-empty);
+      border-radius: 8px;
+      display: flex;
+      gap: 3px;
+      padding: 4px;
+      overflow: hidden;
+    }
+
+    .bar-segment {
+      flex: 1;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .bar-segment.empty {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .bar-segment.filled.main {
+      background: linear-gradient(180deg, var(--accent-main) 0%, #d97706 100%);
+      box-shadow: 0 0 12px var(--accent-main-glow);
+    }
+
+    .bar-segment.filled.n1 {
+      background: linear-gradient(180deg, var(--accent-n1) 0%, #0891b2 100%);
+      box-shadow: 0 0 12px var(--accent-n1-glow);
+    }
+
+    .bar-segment.filled.n2 {
+      background: linear-gradient(180deg, var(--accent-n2) 0%, #9333ea 100%);
+      box-shadow: 0 0 12px var(--accent-n2-glow);
+    }
+
+    .level-input {
+      width: 60px;
+      height: 36px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .level-input:focus {
+      outline: none;
+      border-color: var(--accent-main);
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .level-input.n1:focus {
+      border-color: var(--accent-n1);
+      background: rgba(6, 182, 212, 0.1);
+    }
+
+    .level-input.n2:focus {
+      border-color: var(--accent-n2);
+      background: rgba(168, 85, 247, 0.1);
+    }
+
+    .results-container {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 
+        0 4px 6px -1px rgba(0, 0, 0, 0.3),
+        0 2px 4px -2px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .results-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 25px;
+      text-align: center;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .result-row:last-child {
+      border-bottom: none;
+    }
+
+    .result-label {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .result-value {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 900;
+      transition: all 0.3s ease;
+    }
+
+    .result-value.high {
+      color: var(--success);
+      text-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
+    }
+
+    .result-value.medium {
+      color: var(--warning);
+      text-shadow: 0 0 20px rgba(234, 179, 8, 0.5);
+    }
+
+    .result-value.low {
+      color: #ef4444;
+      text-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+    }
+
+    .remaining-info {
+      text-align: center;
+      margin-top: 25px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .remaining-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      margin-bottom: 5px;
+    }
+
+    .remaining-value {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--accent-n1);
+    }
+
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      color: #ef4444;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .calculating {
+      animation: pulse 1s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Stat Calculator</h1>
+      <p class="subtitle">Level-Up Probability Analysis</p>
+    </header>
+
+    <div class="stat-bars-container">
+      <!-- Main Stat -->
+      <div class="stat-row">
+        <div class="stat-label">
+          <span class="stat-name main">Main Stat</span>
+          <span class="stat-badge main">PRIORITY</span>
+        </div>
+        <div class="stat-controls">
+          <button class="btn btn-minus" onclick="adjustStat('main', -1)" id="main-minus">−</button>
+          <div class="bar-container" id="main-bar"></div>
+          <button class="btn btn-plus" onclick="adjustStat('main', 1)" id="main-plus">+</button>
+          <input type="number" class="level-input" id="main-input" min="0" max="10" value="0" onchange="setStatFromInput('main')">
+        </div>
+      </div>
+
+      <!-- Normal Stat 1 -->
+      <div class="stat-row">
+        <div class="stat-label">
+          <span class="stat-name n1">Normal Stat 1</span>
+          <span class="stat-badge n1">SECONDARY</span>
+        </div>
+        <div class="stat-controls">
+          <button class="btn btn-minus" onclick="adjustStat('n1', -1)" id="n1-minus">−</button>
+          <div class="bar-container" id="n1-bar"></div>
+          <button class="btn btn-plus" onclick="adjustStat('n1', 1)" id="n1-plus">+</button>
+          <input type="number" class="level-input n1" id="n1-input" min="0" max="10" value="0" onchange="setStatFromInput('n1')">
+        </div>
+      </div>
+
+      <!-- Normal Stat 2 -->
+      <div class="stat-row">
+        <div class="stat-label">
+          <span class="stat-name n2">Normal Stat 2</span>
+          <span class="stat-badge n2">SECONDARY</span>
+        </div>
+        <div class="stat-controls">
+          <button class="btn btn-minus" onclick="adjustStat('n2', -1)" id="n2-minus">−</button>
+          <div class="bar-container" id="n2-bar"></div>
+          <button class="btn btn-plus" onclick="adjustStat('n2', 1)" id="n2-plus">+</button>
+          <input type="number" class="level-input n2" id="n2-input" min="0" max="10" value="0" onchange="setStatFromInput('n2')">
+        </div>
+      </div>
+    </div>
+
+    <div class="results-container">
+      <h2 class="results-title">Probabilities</h2>
+      <div id="results">
+        <div class="result-row">
+          <span class="result-label">Main stat reaches level 10</span>
+          <span class="result-value" id="prob-main-10">0.00%</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">At least one normal stat reaches 10</span>
+          <span class="result-value" id="prob-normal-10">0.00%</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Main stat reaches level 8+</span>
+          <span class="result-value" id="prob-main-8">0.00%</span>
+        </div>
+      </div>
+      <div class="remaining-info">
+        <div class="remaining-label">REMAINING LEVEL-UPS</div>
+        <div class="remaining-value" id="remaining">20</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    const stats = { main: 0, n1: 0, n2: 0 };
+    const TOTAL_LEVELS = 20;
+    const MAX_LEVEL = 10;
+
+    // Main stat chances (from Python)
+    const mainChances = {
+      0: 0.35, 1: 0.35, 2: 0.35,
+      3: 0.20, 4: 0.20, 5: 0.20, 6: 0.20,
+      7: 0.15, 8: 0.10, 9: 0.05
+    };
+
+    // Memoization cache
+    let memoCache = {};
+
+    function computeProbabilities(startMain, startN1, startN2) {
+      const remainingLevels = TOTAL_LEVELS - (startMain + startN1 + startN2);
+      if (remainingLevels < 0) {
+        return { error: "Sum of current stats cannot exceed 20 total level-ups" };
+      }
+
+      // Clear cache for fresh calculation
+      memoCache = {};
+
+      function dp(m, n1, n2) {
+        const key = `${m},${n1},${n2}`;
+        if (memoCache[key]) return memoCache[key];
+
+        const used = m + n1 + n2;
+
+        if (used === TOTAL_LEVELS) {
+          const pMain10 = m === 10 ? 1.0 : 0.0;
+          const pNormal10 = (n1 === 10 || n2 === 10) ? 1.0 : 0.0;
+          const pMain8OrMore = m >= 8 ? 1.0 : 0.0;
+          return [pMain10, pNormal10, pMain8OrMore];
+        }
+
+        const pm = m < 10 ? mainChances[m] : 0.0;
+        const remaining = 1 - pm;
+
+        let totalMain10 = 0.0;
+        let totalNormal10 = 0.0;
+        let totalMain8OrMore = 0.0;
+
+        // Main stat
+        if (m < 10) {
+          const [a, b, c] = dp(m + 1, n1, n2);
+          totalMain10 += pm * a;
+          totalNormal10 += pm * b;
+          totalMain8OrMore += pm * c;
+        }
+
+        // Normal stats
+        const normals = [];
+        if (n1 < 10) normals.push(1);
+        if (n2 < 10) normals.push(2);
+
+        if (normals.length > 0) {
+          const pEach = remaining / normals.length;
+          if (n1 < 10) {
+            const [a, b, c] = dp(m, n1 + 1, n2);
+            totalMain10 += pEach * a;
+            totalNormal10 += pEach * b;
+            totalMain8OrMore += pEach * c;
+          }
+          if (n2 < 10) {
+            const [a, b, c] = dp(m, n1, n2 + 1);
+            totalMain10 += pEach * a;
+            totalNormal10 += pEach * b;
+            totalMain8OrMore += pEach * c;
+          }
+        } else {
+          // Both normals maxed, leftover probability wasted
+          const [a, b, c] = dp(m, n1, n2);
+          totalMain10 += remaining * a;
+          totalNormal10 += remaining * b;
+          totalMain8OrMore += remaining * c;
+        }
+
+        memoCache[key] = [totalMain10, totalNormal10, totalMain8OrMore];
+        return memoCache[key];
+      }
+
+      const [pMain10, pNormal10, pMain8OrMore] = dp(startMain, startN1, startN2);
+      return { pMain10, pNormal10, pMain8OrMore };
+    }
+
+    function renderBar(statKey) {
+      const bar = document.getElementById(`${statKey}-bar`);
+      const level = stats[statKey];
+      bar.innerHTML = '';
+      
+      for (let i = 0; i < MAX_LEVEL; i++) {
+        const segment = document.createElement('div');
+        segment.className = `bar-segment ${i < level ? `filled ${statKey}` : 'empty'}`;
+        bar.appendChild(segment);
+      }
+    }
+
+    function updateButtons() {
+      const total = stats.main + stats.n1 + stats.n2;
+      
+      ['main', 'n1', 'n2'].forEach(key => {
+        document.getElementById(`${key}-minus`).disabled = stats[key] <= 0;
+        document.getElementById(`${key}-plus`).disabled = stats[key] >= MAX_LEVEL || total >= TOTAL_LEVELS;
+        document.getElementById(`${key}-input`).value = stats[key];
+      });
+    }
+
+    function getValueClass(value) {
+      if (value >= 70) return 'high';
+      if (value >= 30) return 'medium';
+      return 'low';
+    }
+
+    function updateResults() {
+      const result = computeProbabilities(stats.main, stats.n1, stats.n2);
+      
+      if (result.error) {
+        document.getElementById('results').innerHTML = `
+          <div class="error-message">${result.error}</div>
+        `;
+        return;
+      }
+
+      const main10 = (result.pMain10 * 100);
+      const normal10 = (result.pNormal10 * 100);
+      const main8 = (result.pMain8OrMore * 100);
+
+      const probMain10El = document.getElementById('prob-main-10');
+      const probNormal10El = document.getElementById('prob-normal-10');
+      const probMain8El = document.getElementById('prob-main-8');
+
+      probMain10El.textContent = main10.toFixed(2) + '%';
+      probMain10El.className = `result-value ${getValueClass(main10)}`;
+
+      probNormal10El.textContent = normal10.toFixed(2) + '%';
+      probNormal10El.className = `result-value ${getValueClass(normal10)}`;
+
+      probMain8El.textContent = main8.toFixed(2) + '%';
+      probMain8El.className = `result-value ${getValueClass(main8)}`;
+
+      const remaining = TOTAL_LEVELS - (stats.main + stats.n1 + stats.n2);
+      document.getElementById('remaining').textContent = remaining;
+    }
+
+    function adjustStat(statKey, delta) {
+      const newValue = stats[statKey] + delta;
+      const total = stats.main + stats.n1 + stats.n2 + delta;
+      
+      if (newValue >= 0 && newValue <= MAX_LEVEL && total <= TOTAL_LEVELS) {
+        stats[statKey] = newValue;
+        renderBar(statKey);
+        updateButtons();
+        updateResults();
+      }
+    }
+
+    function setStatFromInput(statKey) {
+      const input = document.getElementById(`${statKey}-input`);
+      let newValue = parseInt(input.value) || 0;
+      newValue = Math.max(0, Math.min(MAX_LEVEL, newValue));
+      
+      const otherStats = Object.keys(stats).filter(k => k !== statKey);
+      const otherTotal = otherStats.reduce((sum, k) => sum + stats[k], 0);
+      
+      if (newValue + otherTotal > TOTAL_LEVELS) {
+        newValue = TOTAL_LEVELS - otherTotal;
+      }
+      
+      stats[statKey] = newValue;
+      input.value = newValue;
+      renderBar(statKey);
+      updateButtons();
+      updateResults();
+    }
+
+    // Initialize
+    function init() {
+      ['main', 'n1', 'n2'].forEach(renderBar);
+      updateButtons();
+      updateResults();
+    }
+
+    init();
+  </script>
+</body>
+</html>
+
