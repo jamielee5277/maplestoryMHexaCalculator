@@ -542,7 +542,8 @@
     }
 
     .stat-dropdown {
-      flex: 1;
+      width: 160px;
+      flex-shrink: 0;
       padding: 8px 12px;
       background: rgba(255, 255, 255, 0.05);
       border: 2px solid rgba(255, 255, 255, 0.1);
@@ -571,13 +572,13 @@
     }
 
     .stat-current-value {
+      flex: 1;
       font-family: 'Orbitron', sans-serif;
       font-size: 1rem;
       font-weight: 700;
       padding: 8px 16px;
       background: rgba(255, 255, 255, 0.05);
       border-radius: 8px;
-      min-width: 120px;
       text-align: center;
       white-space: nowrap;
     }
@@ -730,21 +731,20 @@
       }
 
       .stat-type-row {
-        flex-direction: column;
         gap: 8px;
       }
 
       .stat-dropdown {
-        width: 100%;
-        padding: 10px 12px;
-        font-size: 0.85rem;
+        width: 130px;
+        padding: 8px 10px;
+        font-size: 0.8rem;
+        padding-right: 28px;
       }
 
       .stat-current-value {
-        width: 100%;
-        padding: 10px 12px;
-        font-size: 0.9rem;
-        min-width: unset;
+        flex: 1;
+        padding: 8px 10px;
+        font-size: 0.8rem;
       }
 
       .stat-controls {
@@ -871,6 +871,18 @@
 
       .stat-name {
         font-size: 0.7rem;
+      }
+
+      .stat-dropdown {
+        width: 110px;
+        font-size: 0.75rem;
+        padding: 6px 8px;
+        padding-right: 24px;
+      }
+
+      .stat-current-value {
+        font-size: 0.75rem;
+        padding: 6px 8px;
       }
 
       .stat-values-table th {
