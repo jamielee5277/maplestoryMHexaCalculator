@@ -502,6 +502,42 @@
       border-color: #ef4444;
     }
 
+    .calc-hint {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .progress-wrap {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      margin-top: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: none;
+    }
+
+    .progress-wrap.visible {
+      display: block;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 40%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, transparent 0%, rgba(168, 85, 247, 0.9) 50%, transparent 100%);
+      filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.35));
+      animation: progress-indeterminate 1.1s ease-in-out infinite;
+    }
+
+    @keyframes progress-indeterminate {
+      0% { transform: translateX(-120%); }
+      100% { transform: translateX(280%); }
+    }
+
     .last-roll {
       text-align: center;
       margin-top: 15px;
@@ -1064,6 +1100,44 @@
         </tbody>
       </table>
     </div>
+
+    <div class="probability-table-container">
+      <h2 class="results-title">Estimated Cost To Target (Main >= Target)</h2>
+      <table class="probability-table" id="cost-table">
+        <thead>
+          <tr>
+            <th class="level-header">Target</th>
+            <th>Min Cost</th>
+            <th>Avg Cost</th>
+            <th>Max Cost</th>
+          </tr>
+        </thead>
+        <tbody id="cost-table-body"></tbody>
+      </table>
+    </div>
+
+    <div class="probability-table-container">
+      <h2 class="results-title">Reset Decision (after 10+ spent)</h2>
+      <div class="simulate-container" style="margin-top: 0; padding-top: 0; border-top: none;">
+        <button class="btn-simulate" id="btn-calc-reset-decision" onclick="calculateResetDecision()">Calculate Reset Decision</button>
+      </div>
+      <div class="calc-hint" id="reset-decision-hint">This calculation may take a bit.</div>
+      <div class="progress-wrap" id="reset-decision-progress" aria-hidden="true">
+        <div class="progress-bar"></div>
+      </div>
+      <table class="probability-table" id="reset-decision-table">
+        <thead>
+          <tr>
+            <th class="level-header">Target</th>
+            <th>Decision Now</th>
+            <th>Expected Cost (Reset Now)</th>
+            <th>Expected Cost (Continue)</th>
+            <th>Reset − Continue</th>
+          </tr>
+        </thead>
+        <tbody id="reset-decision-table-body"></tbody>
+      </table>
+    </div>
   </div>
 
   <script>
@@ -1110,6 +1184,7 @@
 
     // Memoization cache
     let memoCache = {};
+    let resetDecisionDirty = true;
 
     function computeProbabilities(startMain, startN1, startN2) {
       const remainingLevels = TOTAL_LEVELS - (startMain + startN1 + startN2);
@@ -1325,6 +1400,430 @@
 
       // Update the probability table
       updateProbabilityTable();
+
+      // Update both cost tables
+      updateCostTables();
+      // Do NOT auto-calculate reset decision (button-triggered).
+      resetDecisionDirty = true;
+      syncResetDecisionUI();
+    }
+
+    function levelUpCostForMain(mainLevel) {
+      // Base cost is 10; it increases when Main hits 3/6/9.
+      if (mainLevel >= 9) return 50;
+      if (mainLevel >= 6) return 30;
+      if (mainLevel >= 3) return 20;
+      return 10;
+    }
+
+    function computeCostStatsToTargets(startMain, startN1, startN2) {
+      // For each target T in [1..10], compute the cost to *reach* main >= T.
+      // We stop accumulating cost as soon as the process reaches (or already satisfies) main >= T.
+      //
+      // Additionally, we compute an unconditional "weighted" cost:
+      // - keep rolling until we either reach the target or the 20-roll horizon ends
+      // - if the target is not reached, the spent cost is treated as wasted (so it still contributes)
+      //
+      // Returned arrays:
+      // - pHit[T] = P(hit target within the remaining 20-total roll horizon)
+      // - expCostWeighted[T] = E[cost * 1(hit)]
+      // - minCost[T] / maxCost[T] = min/max total cost among paths that hit within horizon
+      // - expCostUnconditional[T] = E[costSpentUntilHitOrHorizonEnd]
+      // - minCostAny[T] / maxCostAny[T] = min/max total cost among all paths (hit or fail)
+      const memo = {};
+
+      function dp(m, n1, n2) {
+        const key = `${m},${n1},${n2}`;
+        if (memo[key]) return memo[key];
+
+        const used = m + n1 + n2;
+        const pHit = new Array(11).fill(0);
+        const expCostWeighted = new Array(11).fill(0);
+        const minCost = new Array(11).fill(Infinity);
+        const maxCost = new Array(11).fill(-Infinity);
+        const expCostUnconditional = new Array(11).fill(0);
+        const minCostAny = new Array(11).fill(0);
+        const maxCostAny = new Array(11).fill(0);
+
+        for (let T = 1; T <= 10; T++) {
+          if (m >= T) {
+            // Already at/above the target: cost-to-target is 0.
+            pHit[T] = 1.0;
+            minCost[T] = 0;
+            maxCost[T] = 0;
+            // Unconditional cost-to-stop is also 0
+          }
+        }
+
+        // If we've exhausted the roll horizon and haven't met a target (m < T),
+        // those targets have pHit=0 and no min/max (Infinity/-Infinity).
+        if (used === TOTAL_LEVELS) {
+          const out = {
+            pHit,
+            expCostWeighted,
+            minCost,
+            maxCost,
+            expCostUnconditional,
+            minCostAny,
+            maxCostAny
+          };
+          memo[key] = out;
+          return out;
+        }
+
+        // Only targets with T > m continue from here.
+        const currentCost = levelUpCostForMain(m); // cost of the next roll
+
+        // Build transitions consistent with simulateLevelUp().
+        const transitions = [];
+        const normals = [];
+        if (n1 < MAX_LEVEL) normals.push('n1');
+        if (n2 < MAX_LEVEL) normals.push('n2');
+
+        if (m < MAX_LEVEL) {
+          const mainProb = mainChances[m];
+          const remainingProb = 1 - mainProb;
+
+          if (normals.length > 0) {
+            transitions.push({ prob: mainProb, next: [m + 1, n1, n2] }); // main chosen
+
+            const pEach = remainingProb / normals.length;
+            if (n1 < MAX_LEVEL) transitions.push({ prob: pEach, next: [m, n1 + 1, n2] });
+            if (n2 < MAX_LEVEL) transitions.push({ prob: pEach, next: [m, n1, n2 + 1] });
+          } else {
+            // No additional stats available: even the "non-main" branch becomes main.
+            transitions.push({ prob: 1.0, next: [m + 1, n1, n2] });
+          }
+        } else {
+          // Main is maxed: only normals can increase.
+          const k = normals.length;
+          const pEach = k > 0 ? 1 / k : 0;
+          if (n1 < MAX_LEVEL) transitions.push({ prob: pEach, next: [m, n1 + 1, n2] });
+          if (n2 < MAX_LEVEL) transitions.push({ prob: pEach, next: [m, n1, n2 + 1] });
+        }
+
+        // Compute results for all target T at once.
+        for (let T = 1; T <= 10; T++) {
+          // For targets already satisfied at this node, we've already set:
+          // pHit=1, min=0, max=0 and expCostWeighted=0.
+          if (m >= T) continue;
+
+          let pT = 0.0;
+          let expT = 0.0;
+
+          let minT = Infinity;
+          let maxT = -Infinity;
+
+          let expUn = 0.0;
+          let minAnyChild = Infinity;
+          let maxAnyChild = -Infinity;
+
+          for (const tr of transitions) {
+            const sub = dp(tr.next[0], tr.next[1], tr.next[2]);
+            pT += tr.prob * sub.pHit[T];
+
+            // cost-to-target = this roll cost + sub-cost, but only if sub hits.
+            // E[(currentCost + subCost) * 1(hit)] = currentCost * P(subHit) + E[subCost * 1(subHit)]
+            expT += tr.prob * (currentCost * sub.pHit[T] + sub.expCostWeighted[T]);
+
+            if (sub.minCost[T] < minT) minT = sub.minCost[T];
+            if (sub.maxCost[T] > maxT) maxT = sub.maxCost[T];
+
+            // Unconditional cost: always pay this roll, then add expected/extent from the next state.
+            expUn += tr.prob * sub.expCostUnconditional[T];
+            if (sub.minCostAny[T] < minAnyChild) minAnyChild = sub.minCostAny[T];
+            if (sub.maxCostAny[T] > maxAnyChild) maxAnyChild = sub.maxCostAny[T];
+          }
+
+          pHit[T] = pT;
+          expCostWeighted[T] = expT;
+
+          minCost[T] = (minT === Infinity) ? Infinity : currentCost + minT;
+          maxCost[T] = (maxT === -Infinity) ? -Infinity : currentCost + maxT;
+
+          expCostUnconditional[T] = currentCost + expUn;
+          minCostAny[T] = currentCost + minAnyChild;
+          maxCostAny[T] = currentCost + maxAnyChild;
+        }
+
+        const out = {
+          pHit,
+          expCostWeighted,
+          minCost,
+          maxCost,
+          expCostUnconditional,
+          minCostAny,
+          maxCostAny
+        };
+        memo[key] = out;
+        return out;
+      }
+
+      return dp(startMain, startN1, startN2);
+    }
+
+    function updateCostTables() {
+      const costRes = computeCostStatsToTargets(stats.main, stats.n1, stats.n2);
+
+      // Conditional cost-to-target (only meaningful when the target is hit within the horizon)
+      const tbody = document.getElementById('cost-table-body');
+      tbody.innerHTML = '';
+
+      for (let target = 1; target <= 10; target++) {
+        // ---- Conditional table ----
+        {
+          const tr = document.createElement('tr');
+
+          const tdTarget = document.createElement('td');
+          tdTarget.className = 'level-cell';
+          tdTarget.textContent = target;
+          tr.appendChild(tdTarget);
+
+          const tdMin = document.createElement('td');
+          const tdAvg = document.createElement('td');
+          const tdMax = document.createElement('td');
+
+          const pHit = costRes.pHit[target];
+          if (pHit > 0) {
+            const min = costRes.minCost[target];
+            const max = costRes.maxCost[target];
+            const avg = costRes.expCostWeighted[target] / pHit; // conditional expectation given a hit
+
+            tdMin.textContent = Number.isFinite(min) ? Math.round(min).toLocaleString() : 'N/A';
+            tdAvg.textContent = Math.round(avg).toLocaleString();
+            tdMax.textContent = Number.isFinite(max) ? Math.round(max).toLocaleString() : 'N/A';
+          } else {
+            tdMin.textContent = 'N/A';
+            tdAvg.textContent = 'N/A';
+            tdMax.textContent = 'N/A';
+          }
+
+          tr.appendChild(tdMin);
+          tr.appendChild(tdAvg);
+          tr.appendChild(tdMax);
+
+          tbody.appendChild(tr);
+        }
+      }
+    }
+
+    function computeOptimalResetDecisionForTarget(targetLevel) {
+      // Returns expected future cost-to-success from any state with an optimal policy
+      // that allows "Reset now" only when used >= 10.
+      //
+      // Success = main >= targetLevel.
+      // Failure at used==20 forces a restart.
+      //
+      // Value function V(m,n1,n2) is expected *additional* cost from this state until success.
+      // Reset option: V0 = V(0,0,0). When used >= 10, you may choose min(continue, V0).
+      const allStates = [];
+      for (let m = 0; m <= MAX_LEVEL; m++) {
+        for (let n1 = 0; n1 <= MAX_LEVEL; n1++) {
+          for (let n2 = 0; n2 <= MAX_LEVEL; n2++) {
+            if (m + n1 + n2 <= TOTAL_LEVELS) allStates.push([m, n1, n2]);
+          }
+        }
+      }
+
+      // Initialize with a conservative guess.
+      const V = new Map();
+      for (const [m, n1, n2] of allStates) {
+        const used = m + n1 + n2;
+        const key = `${m},${n1},${n2}`;
+        if (m >= targetLevel) V.set(key, 0);
+        else if (used === TOTAL_LEVELS) V.set(key, 0); // will be overwritten using V0 during iteration
+        else V.set(key, 1e9);
+      }
+
+      const startKey = `0,0,0`;
+
+      function transitionsFor(m, n1, n2) {
+        const transitions = [];
+        const normals = [];
+        if (n1 < MAX_LEVEL) normals.push('n1');
+        if (n2 < MAX_LEVEL) normals.push('n2');
+
+        if (m < MAX_LEVEL) {
+          const mainProb = mainChances[m];
+          const remainingProb = 1 - mainProb;
+
+          if (normals.length > 0) {
+            transitions.push({ prob: mainProb, next: [m + 1, n1, n2] });
+            const pEach = remainingProb / normals.length;
+            if (n1 < MAX_LEVEL) transitions.push({ prob: pEach, next: [m, n1 + 1, n2] });
+            if (n2 < MAX_LEVEL) transitions.push({ prob: pEach, next: [m, n1, n2 + 1] });
+          } else {
+            transitions.push({ prob: 1.0, next: [m + 1, n1, n2] });
+          }
+        } else {
+          const k = normals.length;
+          const pEach = k > 0 ? 1 / k : 0;
+          if (n1 < MAX_LEVEL) transitions.push({ prob: pEach, next: [m, n1 + 1, n2] });
+          if (n2 < MAX_LEVEL) transitions.push({ prob: pEach, next: [m, n1, n2 + 1] });
+        }
+        return transitions;
+      }
+
+      // Value iteration.
+      let V0 = 1e9;
+      const MAX_ITERS = 4000;
+      const EPS = 1e-7;
+
+      for (let iter = 0; iter < MAX_ITERS; iter++) {
+        const prevV0 = V0;
+        V0 = V.get(startKey) ?? 1e9;
+
+        let maxDelta = 0;
+
+        for (const [m, n1, n2] of allStates) {
+          const used = m + n1 + n2;
+          const key = `${m},${n1},${n2}`;
+          const oldVal = V.get(key);
+
+          let newVal;
+
+          if (m >= targetLevel) {
+            newVal = 0;
+          } else if (used === TOTAL_LEVELS) {
+            // Forced restart after horizon ends without success.
+            newVal = V0;
+          } else {
+            const c = levelUpCostForMain(m);
+            const trans = transitionsFor(m, n1, n2);
+            let expNext = 0;
+            for (const t of trans) {
+              const nk = `${t.next[0]},${t.next[1]},${t.next[2]}`;
+              expNext += t.prob * (V.get(nk) ?? 1e9);
+            }
+            const continueCost = c + expNext;
+            newVal = (used >= 10) ? Math.min(continueCost, V0) : continueCost;
+          }
+
+          V.set(key, newVal);
+          const delta = Math.abs((oldVal ?? 0) - newVal);
+          if (delta > maxDelta) maxDelta = delta;
+        }
+
+        const newV0 = V.get(startKey) ?? 1e9;
+        V0 = newV0;
+
+        if (Math.abs(prevV0 - V0) < EPS && maxDelta < 1e-5) break;
+      }
+
+      // Compute "continue cost" for the *current* state (one-step lookahead), so we can
+      // explain the decision numerically.
+      const curKey = `${stats.main},${stats.n1},${stats.n2}`;
+      const usedNow = stats.main + stats.n1 + stats.n2;
+
+      let continueNow = 0;
+      if (stats.main >= targetLevel) {
+        continueNow = 0;
+      } else if (usedNow === TOTAL_LEVELS) {
+        continueNow = V0;
+      } else {
+        const c = levelUpCostForMain(stats.main);
+        const trans = transitionsFor(stats.main, stats.n1, stats.n2);
+        let expNext = 0;
+        for (const t of trans) {
+          const nk = `${t.next[0]},${t.next[1]},${t.next[2]}`;
+          expNext += t.prob * (V.get(nk) ?? 1e9);
+        }
+        continueNow = c + expNext;
+      }
+
+      return { V0, continueNow, usedNow };
+    }
+
+    function updateResetDecisionTable() {
+      const tbody = document.getElementById('reset-decision-table-body');
+      tbody.innerHTML = '';
+
+      const usedNow = stats.main + stats.n1 + stats.n2;
+      const resetAllowed = usedNow >= 10;
+
+      for (let target = 1; target <= 10; target++) {
+        const tr = document.createElement('tr');
+
+        const tdTarget = document.createElement('td');
+        tdTarget.className = 'level-cell';
+        tdTarget.textContent = target;
+        tr.appendChild(tdTarget);
+
+        const tdDecision = document.createElement('td');
+        const tdReset = document.createElement('td');
+        const tdContinue = document.createElement('td');
+        const tdDiff = document.createElement('td');
+
+        if (!resetAllowed) {
+          tdDecision.textContent = '— (reset locked)';
+          tdReset.textContent = 'N/A';
+          tdContinue.textContent = 'N/A';
+          tdDiff.textContent = 'N/A';
+        } else {
+          const res = computeOptimalResetDecisionForTarget(target);
+          const resetNow = res.V0;
+          const continueNow = res.continueNow;
+          const diff = resetNow - continueNow;
+
+          tdDecision.textContent = (diff < 0) ? 'RESET' : 'CONTINUE';
+          tdReset.textContent = Math.round(resetNow).toLocaleString();
+          tdContinue.textContent = Math.round(continueNow).toLocaleString();
+          tdDiff.textContent = Math.round(diff).toLocaleString();
+        }
+
+        tr.appendChild(tdDecision);
+        tr.appendChild(tdReset);
+        tr.appendChild(tdContinue);
+        tr.appendChild(tdDiff);
+        tbody.appendChild(tr);
+      }
+    }
+
+    function syncResetDecisionUI() {
+      const usedNow = stats.main + stats.n1 + stats.n2;
+      const btn = document.getElementById('btn-calc-reset-decision');
+      if (btn) btn.disabled = !(usedNow >= 10);
+
+      const tbody = document.getElementById('reset-decision-table-body');
+      if (!tbody) return;
+
+      if (!resetDecisionDirty) return;
+
+      tbody.innerHTML = `
+          <tr>
+            <td class="level-cell" colspan="5" style="text-align:center; font-family:'DM Sans', sans-serif; color: var(--text-muted);">
+              ${usedNow >= 10 ? "Press “Calculate Reset Decision” to compute." : "Reset decision unlocked after total spent ≥ 10."}
+            </td>
+          </tr>
+        `;
+    }
+
+    function calculateResetDecision() {
+      const usedNow = stats.main + stats.n1 + stats.n2;
+      if (!(usedNow >= 10)) {
+        syncResetDecisionUI();
+        return;
+      }
+      const btn = document.getElementById('btn-calc-reset-decision');
+      const progress = document.getElementById('reset-decision-progress');
+      const hint = document.getElementById('reset-decision-hint');
+
+      if (btn) btn.disabled = true;
+      if (progress) progress.classList.add('visible');
+      if (hint) hint.textContent = 'Calculating… (this may take a bit)';
+
+      // Let the browser paint the progress bar before running heavy work.
+      setTimeout(() => {
+        try {
+          updateResetDecisionTable();
+          resetDecisionDirty = false;
+        } finally {
+          if (progress) progress.classList.remove('visible');
+          if (hint) hint.textContent = 'Done.';
+          // Keep it enabled if reset is still allowed.
+          syncResetDecisionUI();
+        }
+      }, 30);
     }
 
     function updateProbabilityTable() {
@@ -1590,6 +2089,7 @@
       updateResults();
       updateSimulateButton();
       updateAllStatValues();
+      syncResetDecisionUI();
     }
 
     init();
