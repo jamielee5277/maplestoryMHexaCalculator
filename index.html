@@ -1583,6 +1583,15 @@
           const tdAvg = document.createElement('td');
           const tdMax = document.createElement('td');
 
+          // Already reached: show checkmarks, skip cost computation.
+          if (stats.main >= target) {
+            tdMin.textContent = '✓';
+            tdAvg.textContent = '✓';
+            tdMax.textContent = '✓';
+            tdMin.className = 'reached';
+            tdAvg.className = 'reached';
+            tdMax.className = 'reached';
+          } else {
           const pHit = costRes.pHit[target];
           if (pHit > 0) {
             const min = costRes.minCost[target];
@@ -1596,6 +1605,7 @@
             tdMin.textContent = 'N/A';
             tdAvg.textContent = 'N/A';
             tdMax.textContent = 'N/A';
+          }
           }
 
           tr.appendChild(tdMin);
@@ -1754,6 +1764,17 @@
         const tdContinue = document.createElement('td');
         const tdDiff = document.createElement('td');
 
+        // Already reached: show checkmarks, skip decision computation.
+        if (stats.main >= target) {
+          tdDecision.textContent = '✓';
+          tdReset.textContent = '✓';
+          tdContinue.textContent = '✓';
+          tdDiff.textContent = '✓';
+          tdDecision.className = 'reached';
+          tdReset.className = 'reached';
+          tdContinue.className = 'reached';
+          tdDiff.className = 'reached';
+        } else
         if (!resetAllowed) {
           tdDecision.textContent = '— (reset locked)';
           tdReset.textContent = 'N/A';
