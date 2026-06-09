@@ -1117,7 +1117,7 @@
     </div>
 
     <div class="probability-table-container">
-      <h2 class="results-title">Reset Decision (after 10+ spent)</h2>
+      <h2 class="results-title">Reset Decision — Main Stat (after 10+ spent)</h2>
       <div class="simulate-container" style="margin-top: 0; padding-top: 0; border-top: none;">
         <button class="btn-simulate" id="btn-calc-reset-decision" onclick="calculateResetDecision()">Calculate Reset Decision</button>
       </div>
@@ -1942,7 +1942,7 @@
       const resetAllowed = usedNow >= 10;
       const bestAddNow = Math.max(stats.n1, stats.n2);
 
-      for (let target = 1; target <= 10; target++) {
+      for (let target = 8; target <= 10; target++) {
         const tr = document.createElement('tr');
 
         const tdTarget = document.createElement('td');
