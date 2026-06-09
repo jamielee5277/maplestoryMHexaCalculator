@@ -1119,7 +1119,7 @@
     <div class="probability-table-container">
       <h2 class="results-title">Reset Decision — Main Stat (after 10+ spent)</h2>
       <div class="simulate-container" style="margin-top: 0; padding-top: 0; border-top: none;">
-        <button class="btn-simulate" id="btn-calc-reset-decision" onclick="calculateResetDecision()">Calculate Reset Decision</button>
+        <button class="btn-simulate" id="btn-calc-reset-decision" onclick="calculateResetDecision()">Calculate Main Stat Reset Decision</button>
       </div>
       <div class="calc-hint" id="reset-decision-hint">This calculation may take a bit.</div>
       <div class="progress-wrap" id="reset-decision-progress" aria-hidden="true">
@@ -1141,7 +1141,13 @@
 
     <div class="probability-table-container">
       <h2 class="results-title">Reset Decision — Additional Stat (after 10+ spent)</h2>
-      <div class="calc-hint">Target = at least one additional stat reaching the listed level (level 10 = an additional stat maxes out).</div>
+      <div class="simulate-container" style="margin-top: 0; padding-top: 0; border-top: none;">
+        <button class="btn-simulate" id="btn-calc-additional-reset-decision" onclick="calculateAdditionalResetDecision()">Calculate Additional Stat Reset Decision</button>
+      </div>
+      <div class="calc-hint" id="additional-reset-decision-hint">Target = at least one additional stat reaching the listed level (level 10 = an additional stat maxes out).</div>
+      <div class="progress-wrap" id="additional-reset-decision-progress" aria-hidden="true">
+        <div class="progress-bar"></div>
+      </div>
       <table class="probability-table" id="additional-reset-decision-table">
         <thead>
           <tr>
@@ -1202,6 +1208,7 @@
     // Memoization cache
     let memoCache = {};
     let resetDecisionDirty = true;
+    let additionalResetDecisionDirty = true;
 
     function computeProbabilities(startMain, startN1, startN2) {
       const remainingLevels = TOTAL_LEVELS - (startMain + startN1 + startN2);
@@ -1422,6 +1429,7 @@
       updateCostTables();
       // Do NOT auto-calculate reset decision (button-triggered).
       resetDecisionDirty = true;
+      additionalResetDecisionDirty = true;
       syncResetDecisionUI();
     }
 
@@ -1991,26 +1999,34 @@
       }
     }
 
-    function syncResetDecisionUI() {
-      const usedNow = stats.main + stats.n1 + stats.n2;
-      const btn = document.getElementById('btn-calc-reset-decision');
-      if (btn) btn.disabled = !(usedNow >= 10);
-
-      const tbody = document.getElementById('reset-decision-table-body');
-      const tbodyAdd = document.getElementById('additional-reset-decision-table-body');
-      if (!tbody) return;
-
-      if (!resetDecisionDirty) return;
-
-      const placeholder = `
+    function buildResetPlaceholder(usedNow, label) {
+      return `
           <tr>
             <td class="level-cell" colspan="5" style="text-align:center; font-family:'DM Sans', sans-serif; color: var(--text-muted);">
-              ${usedNow >= 10 ? "Press “Calculate Reset Decision” to compute." : "Reset decision unlocked after total spent ≥ 10."}
+              ${usedNow >= 10 ? `Press “${label}” to compute.` : "Reset decision unlocked after total spent ≥ 10."}
             </td>
           </tr>
         `;
-      tbody.innerHTML = placeholder;
-      if (tbodyAdd) tbodyAdd.innerHTML = placeholder;
+    }
+
+    function syncResetDecisionUI() {
+      const usedNow = stats.main + stats.n1 + stats.n2;
+      const allowed = usedNow >= 10;
+
+      const btn = document.getElementById('btn-calc-reset-decision');
+      if (btn) btn.disabled = !allowed;
+      const btnAdd = document.getElementById('btn-calc-additional-reset-decision');
+      if (btnAdd) btnAdd.disabled = !allowed;
+
+      const tbody = document.getElementById('reset-decision-table-body');
+      if (tbody && resetDecisionDirty) {
+        tbody.innerHTML = buildResetPlaceholder(usedNow, 'Calculate Main Stat Reset Decision');
+      }
+
+      const tbodyAdd = document.getElementById('additional-reset-decision-table-body');
+      if (tbodyAdd && additionalResetDecisionDirty) {
+        tbodyAdd.innerHTML = buildResetPlaceholder(usedNow, 'Calculate Additional Stat Reset Decision');
+      }
     }
 
     function calculateResetDecision() {
@@ -2031,12 +2047,35 @@
       setTimeout(() => {
         try {
           updateResetDecisionTable();
-          updateAdditionalResetDecisionTable();
           resetDecisionDirty = false;
         } finally {
           if (progress) progress.classList.remove('visible');
           if (hint) hint.textContent = 'Done.';
           // Keep it enabled if reset is still allowed.
+          syncResetDecisionUI();
+        }
+      }, 30);
+    }
+
+    function calculateAdditionalResetDecision() {
+      const usedNow = stats.main + stats.n1 + stats.n2;
+      if (!(usedNow >= 10)) {
+        syncResetDecisionUI();
+        return;
+      }
+      const btn = document.getElementById('btn-calc-additional-reset-decision');
+      const progress = document.getElementById('additional-reset-decision-progress');
+
+      if (btn) btn.disabled = true;
+      if (progress) progress.classList.add('visible');
+
+      // Let the browser paint the progress bar before running heavy work.
+      setTimeout(() => {
+        try {
+          updateAdditionalResetDecisionTable();
+          additionalResetDecisionDirty = false;
+        } finally {
+          if (progress) progress.classList.remove('visible');
           syncResetDecisionUI();
         }
       }, 30);
