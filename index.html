@@ -1138,6 +1138,23 @@
         <tbody id="reset-decision-table-body"></tbody>
       </table>
     </div>
+
+    <div class="probability-table-container">
+      <h2 class="results-title">Reset Decision — Additional Stat (after 10+ spent)</h2>
+      <div class="calc-hint">Target = at least one additional stat reaching the listed level (level 10 = an additional stat maxes out).</div>
+      <table class="probability-table" id="additional-reset-decision-table">
+        <thead>
+          <tr>
+            <th class="level-header">Target (Add. Stat)</th>
+            <th>Decision Now</th>
+            <th>Expected Cost (Reset Now)</th>
+            <th>Expected Cost (Continue)</th>
+            <th>Reset − Continue</th>
+          </tr>
+        </thead>
+        <tbody id="additional-reset-decision-table-body"></tbody>
+      </table>
+    </div>
   </div>
 
   <script>
@@ -1744,6 +1761,123 @@
       return { V0, continueNow, usedNow };
     }
 
+    function computeOptimalAdditionalResetDecisionForTarget(targetLevel) {
+      // Same optimal-policy value iteration as computeOptimalResetDecisionForTarget,
+      // but success = at least one additional stat reaches targetLevel (n1 >= T OR n2 >= T).
+      const allStates = [];
+      for (let m = 0; m <= MAX_LEVEL; m++) {
+        for (let n1 = 0; n1 <= MAX_LEVEL; n1++) {
+          for (let n2 = 0; n2 <= MAX_LEVEL; n2++) {
+            if (m + n1 + n2 <= TOTAL_LEVELS) allStates.push([m, n1, n2]);
+          }
+        }
+      }
+
+      const succeeded = (m, n1, n2) => (n1 >= targetLevel || n2 >= targetLevel);
+
+      const V = new Map();
+      for (const [m, n1, n2] of allStates) {
+        const used = m + n1 + n2;
+        const key = `${m},${n1},${n2}`;
+        if (succeeded(m, n1, n2)) V.set(key, 0);
+        else if (used === TOTAL_LEVELS) V.set(key, 0); // overwritten using V0 during iteration
+        else V.set(key, 1e9);
+      }
+
+      const startKey = `0,0,0`;
+
+      function transitionsFor(m, n1, n2) {
+        const transitions = [];
+        const normals = [];
+        if (n1 < MAX_LEVEL) normals.push('n1');
+        if (n2 < MAX_LEVEL) normals.push('n2');
+
+        if (m < MAX_LEVEL) {
+          const mainProb = mainChances[m];
+          const remainingProb = 1 - mainProb;
+
+          if (normals.length > 0) {
+            transitions.push({ prob: mainProb, next: [m + 1, n1, n2] });
+            const pEach = remainingProb / normals.length;
+            if (n1 < MAX_LEVEL) transitions.push({ prob: pEach, next: [m, n1 + 1, n2] });
+            if (n2 < MAX_LEVEL) transitions.push({ prob: pEach, next: [m, n1, n2 + 1] });
+          } else {
+            transitions.push({ prob: 1.0, next: [m + 1, n1, n2] });
+          }
+        } else {
+          const k = normals.length;
+          const pEach = k > 0 ? 1 / k : 0;
+          if (n1 < MAX_LEVEL) transitions.push({ prob: pEach, next: [m, n1 + 1, n2] });
+          if (n2 < MAX_LEVEL) transitions.push({ prob: pEach, next: [m, n1, n2 + 1] });
+        }
+        return transitions;
+      }
+
+      let V0 = 1e9;
+      const MAX_ITERS = 4000;
+      const EPS = 1e-7;
+
+      for (let iter = 0; iter < MAX_ITERS; iter++) {
+        const prevV0 = V0;
+        V0 = V.get(startKey) ?? 1e9;
+
+        let maxDelta = 0;
+
+        for (const [m, n1, n2] of allStates) {
+          const used = m + n1 + n2;
+          const key = `${m},${n1},${n2}`;
+          const oldVal = V.get(key);
+
+          let newVal;
+
+          if (succeeded(m, n1, n2)) {
+            newVal = 0;
+          } else if (used === TOTAL_LEVELS) {
+            newVal = V0;
+          } else {
+            const c = levelUpCostForMain(m);
+            const trans = transitionsFor(m, n1, n2);
+            let expNext = 0;
+            for (const t of trans) {
+              const nk = `${t.next[0]},${t.next[1]},${t.next[2]}`;
+              expNext += t.prob * (V.get(nk) ?? 1e9);
+            }
+            const continueCost = c + expNext;
+            newVal = (used >= 10) ? Math.min(continueCost, V0) : continueCost;
+          }
+
+          V.set(key, newVal);
+          const delta = Math.abs((oldVal ?? 0) - newVal);
+          if (delta > maxDelta) maxDelta = delta;
+        }
+
+        const newV0 = V.get(startKey) ?? 1e9;
+        V0 = newV0;
+
+        if (Math.abs(prevV0 - V0) < EPS && maxDelta < 1e-5) break;
+      }
+
+      const usedNow = stats.main + stats.n1 + stats.n2;
+
+      let continueNow = 0;
+      if (succeeded(stats.main, stats.n1, stats.n2)) {
+        continueNow = 0;
+      } else if (usedNow === TOTAL_LEVELS) {
+        continueNow = V0;
+      } else {
+        const c = levelUpCostForMain(stats.main);
+        const trans = transitionsFor(stats.main, stats.n1, stats.n2);
+        let expNext = 0;
+        for (const t of trans) {
+          const nk = `${t.next[0]},${t.next[1]},${t.next[2]}`;
+          expNext += t.prob * (V.get(nk) ?? 1e9);
+        }
+        continueNow = c + expNext;
+      }
+
+      return { V0, continueNow, usedNow };
+    }
+
     function updateResetDecisionTable() {
       const tbody = document.getElementById('reset-decision-table-body');
       tbody.innerHTML = '';
@@ -1800,23 +1934,83 @@
       }
     }
 
+    function updateAdditionalResetDecisionTable() {
+      const tbody = document.getElementById('additional-reset-decision-table-body');
+      tbody.innerHTML = '';
+
+      const usedNow = stats.main + stats.n1 + stats.n2;
+      const resetAllowed = usedNow >= 10;
+      const bestAddNow = Math.max(stats.n1, stats.n2);
+
+      for (let target = 1; target <= 10; target++) {
+        const tr = document.createElement('tr');
+
+        const tdTarget = document.createElement('td');
+        tdTarget.className = 'level-cell';
+        tdTarget.textContent = target;
+        tr.appendChild(tdTarget);
+
+        const tdDecision = document.createElement('td');
+        const tdReset = document.createElement('td');
+        const tdContinue = document.createElement('td');
+        const tdDiff = document.createElement('td');
+
+        // Already reached: show checkmarks, skip decision computation.
+        if (bestAddNow >= target) {
+          tdDecision.textContent = '✓';
+          tdReset.textContent = '✓';
+          tdContinue.textContent = '✓';
+          tdDiff.textContent = '✓';
+          tdDecision.className = 'reached';
+          tdReset.className = 'reached';
+          tdContinue.className = 'reached';
+          tdDiff.className = 'reached';
+        } else
+        if (!resetAllowed) {
+          tdDecision.textContent = '— (reset locked)';
+          tdReset.textContent = 'N/A';
+          tdContinue.textContent = 'N/A';
+          tdDiff.textContent = 'N/A';
+        } else {
+          const res = computeOptimalAdditionalResetDecisionForTarget(target);
+          const resetNow = res.V0;
+          const continueNow = res.continueNow;
+          const diff = resetNow - continueNow;
+
+          tdDecision.textContent = (diff < 0) ? 'RESET' : 'CONTINUE';
+          tdReset.textContent = Math.round(resetNow).toLocaleString();
+          tdContinue.textContent = Math.round(continueNow).toLocaleString();
+          tdDiff.textContent = Math.round(diff).toLocaleString();
+        }
+
+        tr.appendChild(tdDecision);
+        tr.appendChild(tdReset);
+        tr.appendChild(tdContinue);
+        tr.appendChild(tdDiff);
+        tbody.appendChild(tr);
+      }
+    }
+
     function syncResetDecisionUI() {
       const usedNow = stats.main + stats.n1 + stats.n2;
       const btn = document.getElementById('btn-calc-reset-decision');
       if (btn) btn.disabled = !(usedNow >= 10);
 
       const tbody = document.getElementById('reset-decision-table-body');
+      const tbodyAdd = document.getElementById('additional-reset-decision-table-body');
       if (!tbody) return;
 
       if (!resetDecisionDirty) return;
 
-      tbody.innerHTML = `
+      const placeholder = `
           <tr>
             <td class="level-cell" colspan="5" style="text-align:center; font-family:'DM Sans', sans-serif; color: var(--text-muted);">
               ${usedNow >= 10 ? "Press “Calculate Reset Decision” to compute." : "Reset decision unlocked after total spent ≥ 10."}
             </td>
           </tr>
         `;
+      tbody.innerHTML = placeholder;
+      if (tbodyAdd) tbodyAdd.innerHTML = placeholder;
     }
 
     function calculateResetDecision() {
@@ -1837,6 +2031,7 @@
       setTimeout(() => {
         try {
           updateResetDecisionTable();
+          updateAdditionalResetDecisionTable();
           resetDecisionDirty = false;
         } finally {
           if (progress) progress.classList.remove('visible');
