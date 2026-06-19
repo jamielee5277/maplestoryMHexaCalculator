@@ -1234,15 +1234,16 @@
     /* ===== Mobile edge navigation buttons ===== */
     .mobile-nav { display: none; }
 
+    /* Buttons are positioned around the main moves window (set position:relative on mobile) */
     .mnav-btn {
-      position: fixed;
-      width: 54px;
-      height: 54px;
+      position: absolute;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       border: 1px solid rgba(168, 85, 247, 0.45);
-      background: rgba(17, 24, 39, 0.82);
+      background: rgba(17, 24, 39, 0.88);
       color: var(--text-primary);
-      font-size: 1.7rem;
+      font-size: 1.4rem;
       line-height: 1;
       display: flex;
       align-items: center;
@@ -1257,27 +1258,16 @@
 
     .mnav-btn:active { background: rgba(168, 85, 247, 0.55); }
 
-    .mnav-left { left: 12px; top: 50%; transform: translateY(-50%); }
-    .mnav-right { right: 12px; top: 50%; transform: translateY(-50%); }
-
-    .mnav-vert {
-      position: fixed;
-      bottom: 18px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      z-index: 60;
-    }
-    .mnav-vert .mnav-btn { position: static; }
+    .mnav-left  { left: -52px;  top: 50%; transform: translateY(-50%); }
+    .mnav-right { right: -52px; top: 50%; transform: translateY(-50%); }
+    .mnav-up    { top: -52px;    left: 50%; transform: translateX(-50%); }
+    .mnav-down  { bottom: -52px; left: 50%; transform: translateX(-50%); }
 
     @media (max-width: 820px) {
-      body.rotation-active .mobile-nav { display: block; }
-      body.rotation-active .rotation-container { padding-bottom: 110px; }
-      /* keep side buttons clear of the cards */
-      body.rotation-active .next-moves-window { margin-left: 56px; margin-right: 56px; }
-      .upcoming-phase-window { margin-left: 56px; margin-right: 56px; }
+      .mobile-nav { display: block; }
+      /* room around the main window for the surrounding buttons */
+      #main-moves-window { position: relative; margin: 52px 60px 56px; }
+      .upcoming-phase-window { margin-left: 60px; margin-right: 60px; }
     }
 
     @media (max-width: 640px) {
@@ -1290,6 +1280,15 @@
       .move-card .move-sub { font-size: 0.6rem; margin-top: 5px; }
       .move-card.current .move-name { font-size: 0.95rem; }
       .upcoming-phase-window .move-card .move-name { font-size: 0.78rem; }
+
+      /* Hide P0 detail chart and squeeze P1–P4 into one row */
+      .phases-overview { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+      .phases-overview .phase-block:first-child { display: none; }
+      .phase-block { padding: 8px 6px; }
+      .phase-block h3 { font-size: 0.7rem; letter-spacing: 1px; margin-bottom: 6px; }
+      .phase-block ol { font-size: 0.62rem; }
+      .phase-block li { gap: 4px; padding: 2px 3px; }
+      .phase-block li::before { min-width: 12px; font-size: 0.58rem; }
     }
   </style>
 </head>
@@ -1522,6 +1521,12 @@
         <div class="next-moves-window" id="main-moves-window">
           <div class="phase-tag" id="rotation-phase-tag">P0</div>
           <div class="next-moves-grid" id="next-moves-grid"></div>
+          <div class="mobile-nav" id="mobile-nav" aria-hidden="true">
+            <button class="mnav-btn mnav-left" aria-label="Previous move" onclick="shiftMove('left')">‹</button>
+            <button class="mnav-btn mnav-right" aria-label="Next move" onclick="shiftMove('right')">›</button>
+            <button class="mnav-btn mnav-up" aria-label="Previous phase" onclick="goToPrevPhase()">▲</button>
+            <button class="mnav-btn mnav-down" aria-label="Next phase" onclick="goToNextPhase()">▼</button>
+          </div>
         </div>
 
         <div class="next-moves-window upcoming-phase-window" id="upcoming-phase-window">
@@ -1533,15 +1538,6 @@
       <div class="phases-overview" id="phases-overview"></div>
     </div>
   </div><!-- /tab-rotation -->
-
-  <div class="mobile-nav" id="mobile-nav" aria-hidden="true">
-    <button class="mnav-btn mnav-left" aria-label="Previous move" onclick="shiftMove('left')">‹</button>
-    <button class="mnav-btn mnav-right" aria-label="Next move" onclick="shiftMove('right')">›</button>
-    <div class="mnav-vert">
-      <button class="mnav-btn mnav-up" aria-label="Previous phase" onclick="goToPrevPhase()">▲</button>
-      <button class="mnav-btn mnav-down" aria-label="Next phase" onclick="goToNextPhase()">▼</button>
-    </div>
-  </div>
 
   <script>
     // State
