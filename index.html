@@ -1282,14 +1282,14 @@
 
     @media (max-width: 640px) {
       .rotation-header h1 { font-size: 1.5rem; }
-      .next-moves-window { padding: 16px; }
-      .next-moves-grid { gap: 10px; }
-      .move-card { padding: 14px 8px; }
-      .move-card .move-name { font-size: 0.95rem; }
-      .move-card.current .move-name { font-size: 1.2rem; }
-      .next-moves-grid.cols-3,
-      .next-moves-grid.cols-4,
-      .upcoming-phase-window .next-moves-grid.cols-4 { grid-template-columns: 1fr 1fr; }
+      .next-moves-window { padding: 14px 10px; }
+      .next-moves-grid { gap: 6px; }
+      .move-card { padding: 12px 4px; }
+      .move-card .move-when { font-size: 0.55rem; letter-spacing: 1px; margin-bottom: 6px; }
+      .move-card .move-name { font-size: 0.78rem; letter-spacing: 0; }
+      .move-card .move-sub { font-size: 0.6rem; margin-top: 5px; }
+      .move-card.current .move-name { font-size: 0.95rem; }
+      .upcoming-phase-window .move-card .move-name { font-size: 0.78rem; }
     }
   </style>
 </head>
@@ -2954,34 +2954,6 @@
     }
 
     document.addEventListener('keydown', handleRotationKeys);
-
-    // Swipe gestures on the cards area: left/right = move, up/down = phase.
-    (function setupSwipe() {
-      const zone = document.getElementById('rotation-swipe-zone');
-      if (!zone) return;
-      let sx = 0, sy = 0, tracking = false;
-      const TH = 45;
-      zone.addEventListener('touchstart', (e) => {
-        if (e.touches.length !== 1) { tracking = false; return; }
-        sx = e.touches[0].clientX;
-        sy = e.touches[0].clientY;
-        tracking = true;
-      }, { passive: true });
-      zone.addEventListener('touchend', (e) => {
-        if (!tracking) return;
-        tracking = false;
-        const t = e.changedTouches[0];
-        const dx = t.clientX - sx;
-        const dy = t.clientY - sy;
-        const absX = Math.abs(dx), absY = Math.abs(dy);
-        if (Math.max(absX, absY) < TH) return;
-        if (absX > absY) {
-          shiftMove(dx < 0 ? 'left' : 'right');
-        } else {
-          if (dy < 0) goToPrevPhase(); else goToNextPhase();
-        }
-      }, { passive: true });
-    })();
 
     // Initialize
     function init() {
